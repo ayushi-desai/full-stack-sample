@@ -177,7 +177,10 @@ const validateFile = async ({ fileBaseName, directoryToUpload, exporter }) => {
             await validateGWDZipFile({ fileBaseName, directoryToUpload });
             break;
         case 'conversio':
-            await validateConversioZipFile({ fileBaseName, directoryToUpload });
+            await validateConversionZipFile({ fileBaseName, directoryToUpload });
+            break;
+        case 'html':
+            await validateHTMLInZip({ fileBaseName, directoryToUpload });
             break;
         default:
             await validateGWDZipFile({ fileBaseName, directoryToUpload });
@@ -236,7 +239,7 @@ export const validateGWDZipFile = async ({
     return true;
 };
 
-export const validateConversioZipFile = async ({
+export const validateConversionZipFile = async ({
     fileBaseName,
     directoryToUpload,
     _getFiles = getFiles,
@@ -266,6 +269,40 @@ export const validateConversioZipFile = async ({
     if (rootHtmlString.length < 1) {
         throw new VError('Root .html file is missing content');
     }
+
+    return true;
+};
+
+export const validateHTMLInZip = async ({
+    // fileBaseName,
+    directoryToUpload,
+    _getFiles = getFiles,
+    _readRootHtmlFile = readRootHtmlFile,
+} = {}) => {
+    const files = await _getFiles(path.resolve(__dirname, directoryToUpload));
+
+    const rootHtmlFile = _.find(files, file => _.includes(file, '.html'));
+
+    if (!rootHtmlFile) {
+        throw new VError('Zip file does not contain a root .html file');
+    }
+
+    const rootHtmlString = _readRootHtmlFile(rootHtmlFile);
+
+    if (rootHtmlString.length < 1) {
+        throw new VError('Root .html file is missing content');
+    }
+
+    const containsAdSizeMeta = _.includes(
+        rootHtmlString,
+        'name="ad.size"'
+    );
+
+    if (!containsAdSizeMeta) {
+        throw new VError('Root .html file does not contain ad size meta tag');
+    }
+
+    rootHtmlString = _.replace(rootHtmlString,new RegExp("clickTag = 'https://www.google.com';",'g'),"clickTag = decodeURIComponent(window.location.href.split('?adserver=')[1]) + 'https://www.google.com';")
 
     return true;
 };
@@ -317,13 +354,13 @@ const uploadDirectoryToS3 = async ({
 
             switch (exporter) {
                 case 'gwd':
-                    Body = processGWDClickthroughUrls(Body);
+                    Body = processGWDClickByUrls(Body);
                     break;
                 case 'conversio':
-                    Body = processConversioClickthroughUrls(Body);
+                    Body = processConversionClickByUrls(Body);
                     break;
                 default:
-                    Body = processGWDClickthroughUrls(Body);
+                    Body = processGWDClickByUrls(Body);
             }
         } else {
             Body = fs.readFileSync(filePath);
@@ -393,7 +430,7 @@ const removeTempFolders = () => {
     deleteFolderRecursively(EXTRACT_DIRECTORY);
 };
 
-export const processGWDClickthroughUrls = body => {
+export const processGWDClickByUrls = body => {
     let output = body;
 
     const exitEventRegex = /.exit\([^\)]+\)/gm;
@@ -416,7 +453,7 @@ export const processGWDClickthroughUrls = body => {
     return output;
 };
 
-export const processConversioClickthroughUrls = body => {
+export const processConversionClickByUrls = body => {
     let output = body;
 
     const clickTagRegex = /clickTag\s*=\s*["'](\S*)["']/gi;

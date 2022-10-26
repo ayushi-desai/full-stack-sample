@@ -3,10 +3,11 @@ import _ from 'lodash';
 import sinon from 'sinon';
 
 import {
-    validateConversioZipFile,
+    validateConversionZipFile,
     validateGWDZipFile,
-    processGWDClickthroughUrls,
-    processConversioClickthroughUrls,
+    processGWDClickByUrls,
+    processConversionClickByUrls,
+    validateHTMLInZip,
 } from './handler.js';
 
 describe('campaign creatives zip file upload validators', () => {
@@ -154,7 +155,7 @@ describe('campaign creatives zip file upload validators', () => {
             let isValid;
 
             try {
-                isValid = await validateConversioZipFile({
+                isValid = await validateConversionZipFile({
                     fileBaseName: 'gwd-test-a (1)',
                     directoryToUpload: 'testUploadDirectory',
                     _getFiles,
@@ -170,14 +171,14 @@ describe('campaign creatives zip file upload validators', () => {
         });
     });
 
-    describe('validateConversioZipFile', () => {
+    describe('validateConversionZipFile', () => {
         it('calls correct dependencies for conversio zip upload', async () => {
             const _getFiles = sinon.stub().returns(['testZipFile.html']);
             const _readRootHtmlFile = sinon
                 .stub()
                 .returns(`<meta name="generator" content="Google Web Designer"/>`);
 
-            await validateConversioZipFile({
+            await validateConversionZipFile({
                 fileBaseName: 'testZipFile',
                 directoryToUpload: 'testUploadDirectory',
                 _getFiles,
@@ -196,7 +197,7 @@ describe('campaign creatives zip file upload validators', () => {
                 <image src="images/test-image.png"/>
             `);
 
-            const isValid = await validateConversioZipFile({
+            const isValid = await validateConversionZipFile({
                 fileBaseName: 'conversio-test-a',
                 directoryToUpload: 'testUploadDirectory',
                 _getFiles,
@@ -214,7 +215,7 @@ describe('campaign creatives zip file upload validators', () => {
                 <image src="images/test-image.png"/>
             `);
 
-            const isValid = await validateConversioZipFile({
+            const isValid = await validateConversionZipFile({
                 fileBaseName: 'conversio-test-a (1)',
                 directoryToUpload: 'testUploadDirectory',
                 _getFiles,
@@ -230,7 +231,7 @@ describe('campaign creatives zip file upload validators', () => {
             let isValid;
 
             try {
-                isValid = await validateConversioZipFile({
+                isValid = await validateConversionZipFile({
                     fileBaseName: 'conversio-test-a',
                     directoryToUpload: 'testUploadDirectory',
                     _getFiles,
@@ -249,7 +250,7 @@ describe('campaign creatives zip file upload validators', () => {
             let isValid;
 
             try {
-                isValid = await validateConversioZipFile({
+                isValid = await validateConversionZipFile({
                     fileBaseName: 'conversio-test-a',
                     directoryToUpload: 'testUploadDirectory',
                     _getFiles,
@@ -272,7 +273,7 @@ describe('campaign creatives zip file upload validators', () => {
             let isValid;
 
             try {
-                isValid = await validateConversioZipFile({
+                isValid = await validateConversionZipFile({
                     fileBaseName: 'conversio-test-a (1)',
                     directoryToUpload: 'testUploadDirectory',
                     _getFiles,
@@ -288,7 +289,7 @@ describe('campaign creatives zip file upload validators', () => {
         });
     });
 
-    describe('processGWDClickthroughUrls', () => {
+    describe('processGWDClickByUrls', () => {
         it('should process all clickthrough urls with a redirect macro', () => {
             const rawSingleUrlBody = `
                 <script type="text/javascript" gwd-events="handlers">
@@ -345,12 +346,12 @@ describe('campaign creatives zip file upload validators', () => {
                 </script>
             `;
 
-            expect(processGWDClickthroughUrls(rawSingleUrlBody)).to.eql(processedSingleUrlBody);
-            expect(processGWDClickthroughUrls(rawMultiUrlBody)).to.eql(processedMultiUrlBody);
+            expect(processGWDClickByUrls(rawSingleUrlBody)).to.eql(processedSingleUrlBody);
+            expect(processGWDClickByUrls(rawMultiUrlBody)).to.eql(processedMultiUrlBody);
         });
     });
 
-    describe('processConversioClickthroughUrls', () => {
+    describe('processConversionClickByUrls', () => {
         it('should process all clickthrough urls with a redirect macro', () => {
             const expectedOutputWithVar = `
                 <script>
@@ -384,7 +385,7 @@ describe('campaign creatives zip file upload validators', () => {
             `;
 
             expect(
-                processConversioClickthroughUrls(`
+                processConversionClickByUrls(`
                 <script>
                     var clickTag = "http://plancherspayless.com/fr/"
                 </script>
@@ -392,7 +393,7 @@ describe('campaign creatives zip file upload validators', () => {
             ).to.eql(expectedOutputWithVar);
 
             expect(
-                processConversioClickthroughUrls(`
+                processConversionClickByUrls(`
                 <script>
                     var clickTag = 'http://plancherspayless.com/fr/'
                 </script>
@@ -400,7 +401,7 @@ describe('campaign creatives zip file upload validators', () => {
             ).to.eql(expectedOutputWithVar);
 
             expect(
-                processConversioClickthroughUrls(`
+                processConversionClickByUrls(`
                 <script>
                     let clickTag = "http://plancherspayless.com/fr/"
                 </script>
@@ -408,7 +409,7 @@ describe('campaign creatives zip file upload validators', () => {
             ).to.eql(expectedOutputWithLet);
 
             expect(
-                processConversioClickthroughUrls(`
+                processConversionClickByUrls(`
                 <script>
                     const clickTag = "http://plancherspayless.com/fr/"
                 </script>
@@ -416,7 +417,7 @@ describe('campaign creatives zip file upload validators', () => {
             ).to.eql(expectedOutputWithConst);
 
             expect(
-                processConversioClickthroughUrls(`
+                processConversionClickByUrls(`
                 <script>
                     var ClickTAG = "http://plancherspayless.com/fr/"
                 </script>
@@ -424,7 +425,7 @@ describe('campaign creatives zip file upload validators', () => {
             ).to.eql(expectedOutputWithCase);
 
             expect(
-                processConversioClickthroughUrls(`
+                processConversionClickByUrls(`
                 <script>
                     var clickTag  =  "http://plancherspayless.com/fr/"
                 </script>
@@ -432,12 +433,75 @@ describe('campaign creatives zip file upload validators', () => {
             ).to.eql(expectedOutputWithSpace);
 
             expect(
-                processConversioClickthroughUrls(`
+                processConversionClickByUrls(`
                 <script>
                     var clickTag="http://plancherspayless.com/fr/"
                 </script>
             `)
             ).to.eql(expectedOutputWithNoSpace);
         });
+    });
+
+    describe('validateHTMLInZip', () => {
+        
+        it('should reject zip file with missing root html file', async () => {
+            const _getFiles = sinon.stub().returns([]);
+            const _readRootHtmlFile = sinon.stub().returns(`<meta/>`);
+            let isValid;
+
+            try {
+                isValid = await validateHTMLInZip({
+                    fileBaseName: 'conversio-test-a',
+                    directoryToUpload: 'testUploadDirectory',
+                    _getFiles,
+                    _readRootHtmlFile,
+                });
+            } catch (err) {
+                expect(err.message).to.eql('Zip file does not contain a root .html file');
+            }
+
+            expect(isValid).to.eql(undefined);
+        });
+
+        it('should reject zip file where root html file is missing content', async () => {
+            const _getFiles = sinon.stub().returns(['conversio-test-a.html']);
+            const _readRootHtmlFile = sinon.stub().returns('');
+            let isValid;
+
+            try {
+                isValid = await validateHTMLInZip({
+                    fileBaseName: 'conversio-test-a',
+                    directoryToUpload: 'testUploadDirectory',
+                    _getFiles,
+                    _readRootHtmlFile,
+                });
+            } catch (err) {
+                expect(err.message).to.eql('Root .html file is missing content');
+            }
+
+            expect(isValid).to.eql(undefined);
+        }); 
+
+        it('should reject zip file where root html file does not contain Ad Size metadata', async () => {
+            const _getFiles = sinon.stub().returns(['conversio-test-a.html']);
+            const _readRootHtmlFile = sinon.stub().returns('<meta name="ad.size" content="width=300,height=250"/>');
+            let isValid;
+
+            try {
+                isValid = await validateHTMLInZip({
+                    fileBaseName: 'conversio-test-a',
+                    directoryToUpload: 'testUploadDirectory',
+                    _getFiles,
+                    _readRootHtmlFile,
+                });
+            } catch (err) {
+                expect(err.message).to.eql(
+                    'Root .html file does not contain ad size meta tag'
+                );
+            }
+
+            expect(isValid).to.eql(undefined);
+        });
+
     });
 });
